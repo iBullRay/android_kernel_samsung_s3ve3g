@@ -4368,6 +4368,7 @@ static int tapan_codec_enable_slimrx(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
+		dai->bus_down_in_recovery = false;
 		(void) tapan_codec_enable_slim_chmask(dai, true);
 #ifdef CONFIG_SND_SOC_ES325_ATLANTIC
 		ret = es325_remote_cfg_slim_rx(w->shift);
@@ -4382,7 +4383,8 @@ static int tapan_codec_enable_slimrx(struct snd_soc_dapm_widget *w,
 #endif
 		ret = wcd9xxx_close_slim_sch_rx(core, &dai->wcd9xxx_ch_list,
 						dai->grph);
-		ret = tapan_codec_enable_slim_chmask(dai, false);
+		if (!dai->bus_down_in_recovery)
+			ret = tapan_codec_enable_slim_chmask(dai, false);
 		if (ret < 0) {
 			ret = wcd9xxx_disconnect_port(core,
 						      &dai->wcd9xxx_ch_list,
@@ -4397,6 +4399,7 @@ static int tapan_codec_enable_slimrx(struct snd_soc_dapm_widget *w,
 			pm_runtime_put(core->dev->parent);
 			dev_dbg(codec->dev, "%s: unvote requested", __func__);
 		}
+		dai->bus_down_in_recovery = false;
 		break;
 	}
 	return ret;
@@ -4431,6 +4434,7 @@ static int tapan_codec_enable_slimtx(struct snd_soc_dapm_widget *w,
 	dai = &tapan_p->dai[w->shift];
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
+		dai->bus_down_in_recovery = false;
 		(void) tapan_codec_enable_slim_chmask(dai, true);
 		ret = wcd9xxx_cfg_slim_sch_tx(core, &dai->wcd9xxx_ch_list,
 					      dai->rate, dai->bit_width,
@@ -4445,7 +4449,8 @@ static int tapan_codec_enable_slimtx(struct snd_soc_dapm_widget *w,
 #endif
 		ret = wcd9xxx_close_slim_sch_tx(core, &dai->wcd9xxx_ch_list,
 						dai->grph);
-		ret = tapan_codec_enable_slim_chmask(dai, false);
+		if (!dai->bus_down_in_recovery)
+			ret = tapan_codec_enable_slim_chmask(dai, false);
 		if (ret < 0) {
 			ret = wcd9xxx_disconnect_port(core,
 						      &dai->wcd9xxx_ch_list,
@@ -4460,6 +4465,7 @@ static int tapan_codec_enable_slimtx(struct snd_soc_dapm_widget *w,
 			pm_runtime_put(core->dev->parent);
 			dev_dbg(codec->dev, "%s: unvote requested", __func__);
 		}
+		dai->bus_down_in_recovery = false;
 		break;
 	}
 	return ret;
@@ -5989,6 +5995,7 @@ static int tapan_post_reset_cb(struct wcd9xxx *wcd9xxx)
 	int rco_clk_rate;
 	struct snd_soc_codec *codec;
 	struct tapan_priv *tapan;
+	int count;
 
 	codec = (struct snd_soc_codec *)(wcd9xxx->ssr_priv);
 	tapan = snd_soc_codec_get_drvdata(codec);
@@ -6049,6 +6056,9 @@ static int tapan_post_reset_cb(struct wcd9xxx *wcd9xxx)
 		pr_err("%s: Failed to setup irq: %d\n", __func__, ret);
 
 	tapan->machine_codec_event_cb(codec, WCD9XXX_CODEC_EVENT_CODEC_UP);
+
+	for (count = 0; count < NUM_CODEC_DAIS; count++)
+		tapan->dai[count].bus_down_in_recovery = true;
 
 	mutex_unlock(&codec->mutex);
 	return ret;
