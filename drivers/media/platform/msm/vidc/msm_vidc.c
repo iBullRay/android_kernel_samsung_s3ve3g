@@ -1401,7 +1401,6 @@ int msm_vidc_close(void *instance)
 	}
 
 	core = inst->core;
-	msm_comm_session_clean(inst);
 
 	mutex_lock(&core->lock);
 	list_for_each_safe(ptr, next, &core->instances) {
@@ -1428,6 +1427,8 @@ int msm_vidc_close(void *instance)
 	if (rc)
 		dprintk(VIDC_ERR,
 			"Failed to move video instance to uninit state\n");
+
+	msm_comm_session_clean(inst);
 
 	msm_smem_delete_client(inst->mem_client);
 	pr_info(VIDC_DBG_TAG "Closed video instance: %p\n", VIDC_INFO, inst);
