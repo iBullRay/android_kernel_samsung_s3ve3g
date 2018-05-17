@@ -209,11 +209,23 @@ static inline bool virtqueue_enable_cb(struct virtqueue *vq)
 	return vq->vq_ops->enable_cb(vq);
 }
 
-unsigned virtqueue_enable_cb_prepare(struct virtqueue *vq);
-
-bool virtqueue_poll(struct virtqueue *vq, unsigned);
-
-bool virtqueue_enable_cb_delayed(struct virtqueue *vq);
+/**
+ * virtqueue_enable_cb_delayed - restart callbacks after disable_cb.
+ * @vq: the struct virtqueue we're talking about.
+ *
+ * This re-enables callbacks but hints to the other side to delay
+ * interrupts until most of the available buffers have been processed;
+ * it returns "false" if there are many pending buffers in the queue,
+ * to detect a possible race between the driver checking for more work,
+ * and enabling callbacks.
+ *
+ * Caller must ensure we don't call this with other virtqueue
+ * operations at the same time (except where noted).
+ */
+static inline bool virtqueue_enable_cb_delayed(struct virtqueue *vq)
+{
+	return vq->vq_ops->enable_cb_delayed(vq);
+}
 
 /**
  * virtqueue_detach_unused_buf - detach first unused buffer
@@ -262,11 +274,7 @@ struct virtio_device {
 	void *priv;
 };
 
-static inline struct virtio_device *dev_to_virtio(struct device *_dev)
-{
-	return container_of(_dev, struct virtio_device, dev);
-}
-
+#define dev_to_virtio(dev) container_of(dev, struct virtio_device, dev)
 int register_virtio_device(struct virtio_device *dev);
 void unregister_virtio_device(struct virtio_device *dev);
 
