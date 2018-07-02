@@ -139,8 +139,6 @@ static int test_task_flag(struct task_struct *p, int flag)
 	return 0;
 }
 
-static DEFINE_MUTEX(scan_mutex);
-
 static int test_task_flag(struct task_struct *p, int flag)
 {
     struct task_struct *t = p;
@@ -291,6 +289,8 @@ void tune_lmk_param(int *other_free, int *other_file, struct shrink_control *sc)
     }
 }
 
+static DEFINE_MUTEX(scan_mutex);
+
 static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 {
 	struct task_struct *tsk;
@@ -373,6 +373,9 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
         if (time_before_eq(jiffies, lowmem_deathpending_timeout)) {
             if (test_task_flag(tsk, TIF_MEMDIE)) {
                 rcu_read_unlock();
+                /* give the system time to free up the memory */
+                msleep_interruptible(20);
+                mutex_unlock(&scan_mutex);
                 return 0;
             }
         }
