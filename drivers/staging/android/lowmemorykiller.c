@@ -141,6 +141,22 @@ static int test_task_flag(struct task_struct *p, int flag)
 
 static DEFINE_MUTEX(scan_mutex);
 
+static int test_task_flag(struct task_struct *p, int flag)
+{
+    struct task_struct *t = p;
+
+    do {
+        task_lock(t);
+        if (test_tsk_thread_flag(t, flag)) {
+            task_unlock(t);
+            return 1;
+        }
+        task_unlock(t);
+    } while_each_thread(p, t);
+
+    return 0;
+}
+
 void tune_lmk_zone_param(struct zonelist *zonelist, int classzone_idx,
                     int *other_free, int *other_file)
 {
@@ -296,19 +312,16 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		if (tsk->flags & PF_KTHREAD)
 			continue;
 
+        if (time_before_eq(jiffies, lowmem_deathpending_timeout)) {
+            if (test_task_flag(tsk, TIF_MEMDIE)) {
+                rcu_read_unlock();
+                return 0;
+            }
+        }
+
 		/* if task no longer has any memory ignore it */
 		if (test_task_flag(tsk, TIF_MM_RELEASED))
 			continue;
-
-		if (time_before_eq(jiffies, lowmem_deathpending_timeout)) {
-			if (test_task_flag(tsk, TIF_MEMDIE)) {
-				rcu_read_unlock();
-				/* give the system time to free up the memory */
-				msleep_interruptible(20);
-				mutex_unlock(&scan_mutex);
-				return 0;
-			}
-		}
 
 		p = find_lock_task_mm(tsk);
 		if (!p)
