@@ -1087,14 +1087,14 @@ static struct binder_ref *binder_get_ref(struct binder_proc *proc,
 
 		if (desc < ref->desc) {
 			n = n->rb_left;
-        } else if (desc > ref->desc) {
+		} else if (desc > ref->desc) {
 			n = n->rb_right;
-        } else if (need_strong_ref && !ref->strong) {
-            binder_user_error("tried to use weak ref as strong ref\n");
-            return NULL;
-        } else {
+		} else if (need_strong_ref && !ref->strong) {
+			binder_user_error("tried to use weak ref as strong ref\n");
+			return NULL;
+		} else {
 			return ref;
-        }
+		}
 	}
 	return NULL;
 }
@@ -1372,7 +1372,7 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 		case BINDER_TYPE_HANDLE:
 		case BINDER_TYPE_WEAK_HANDLE: {
 			struct binder_ref *ref = binder_get_ref(proc, fp->handle,
-                        fp->type == BINDER_TYPE_HANDLE);
+                        	fp->type == BINDER_TYPE_HANDLE);
 			if (ref == NULL) {
 				binder_debug(BINDER_DEBUG_TOP_ERRORS,
 					     "binder: transaction release %d"
@@ -1661,9 +1661,9 @@ static void binder_transaction(struct binder_proc *proc,
 				fp->type = BINDER_TYPE_HANDLE;
 			else
 				fp->type = BINDER_TYPE_WEAK_HANDLE;
-            fp->binder = 0;
+            		fp->binder = 0;
 			fp->handle = ref->desc;
-            fp->cookie = 0;
+            		fp->cookie = 0;
 			binder_inc_ref(ref, fp->type == BINDER_TYPE_HANDLE,
 				       &thread->todo);
 
@@ -1675,7 +1675,7 @@ static void binder_transaction(struct binder_proc *proc,
 		case BINDER_TYPE_HANDLE:
 		case BINDER_TYPE_WEAK_HANDLE: {
 			struct binder_ref *ref = binder_get_ref(proc, fp->handle,
-                        fp->type == BINDER_TYPE_HANDLE);
+                        	fp->type == BINDER_TYPE_HANDLE);
 			if (ref == NULL) {
 				binder_user_error("binder: %d:%d got "
 					"transaction with invalid "
@@ -1707,9 +1707,9 @@ static void binder_transaction(struct binder_proc *proc,
 					return_error = BR_FAILED_REPLY;
 					goto err_binder_get_ref_for_node_failed;
 				}
-                fp->binder = 0;
+                		fp->binder = 0;
 				fp->handle = new_ref->desc;
-                fp->cookie = 0;
+                		fp->cookie = 0;
 				binder_inc_ref(new_ref, fp->type == BINDER_TYPE_HANDLE, NULL);
 				binder_debug(BINDER_DEBUG_TRANSACTION,
 					     "        ref %d desc %d -> ref %d desc %d (node %d)\n",
@@ -1758,7 +1758,7 @@ static void binder_transaction(struct binder_proc *proc,
 			binder_debug(BINDER_DEBUG_TRANSACTION,
 				     "        fd %ld -> %d\n", fp->handle, target_fd);
 			/* TODO: fput? */
-            fp->binder = 0;
+            		fp->binder = 0;
 			fp->handle = target_fd;
 		} break;
 
@@ -1792,15 +1792,15 @@ static void binder_transaction(struct binder_proc *proc,
 	tcomplete->type = BINDER_WORK_TRANSACTION_COMPLETE;
 	list_add_tail(&tcomplete->entry, &thread->todo);
 	if (target_wait) {
-        if (reply || !(t->flags & TF_ONE_WAY)) {
-            preempt_disable();
-            wake_up_interruptible_sync(target_wait);
-            sched_preempt_enable_no_resched();
-        }
-        else {
-            wake_up_interruptible(target_wait);
-        }
-    }
+        	if (reply || !(t->flags & TF_ONE_WAY)) {
+            		preempt_disable();
+            		wake_up_interruptible_sync(target_wait);
+            		sched_preempt_enable_no_resched();
+        	}
+        	else {
+            		wake_up_interruptible(target_wait);
+        	}
+    	}
 	return;
 
 err_get_unused_fd_failed:
@@ -1888,8 +1888,8 @@ int binder_thread_write(struct binder_proc *proc, struct binder_thread *thread,
 				}
 			} else
 				ref = binder_get_ref(proc, target,
-                                cmd == BC_ACQUIRE ||
-                                cmd == BC_RELEASE);
+                                	cmd == BC_ACQUIRE ||
+                                	cmd == BC_RELEASE);
 			if (ref == NULL) {
 				binder_user_error("binder: %d:%d refcou"
 					"nt change on invalid ref %d\n",
