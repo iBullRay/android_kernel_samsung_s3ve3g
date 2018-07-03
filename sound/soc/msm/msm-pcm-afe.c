@@ -51,11 +51,11 @@ static struct snd_pcm_hardware msm_afe_hardware = {
 	.rate_max =             48000,
 	.channels_min =         1,
 	.channels_max =         2,
-    .buffer_bytes_max =     MAX_PERIOD_SIZE * MAX_NUM_PERIODS,
+	.buffer_bytes_max =     MAX_PERIOD_SIZE * MAX_NUM_PERIODS,
 	.period_bytes_min =     MIN_PERIOD_SIZE,
 	.period_bytes_max =     MAX_PERIOD_SIZE,
-    .periods_min =          MIN_NUM_PERIODS,
-    .periods_max =          MAX_NUM_PERIODS,
+	.periods_min =          MIN_NUM_PERIODS,
+	.periods_max =          MAX_NUM_PERIODS,
 	.fifo_size =            0,
 };
 static enum hrtimer_restart afe_hrtimer_callback(struct hrtimer *hrt);
