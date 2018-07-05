@@ -734,12 +734,14 @@ err1:
 	return ret;
 }
 
-static int __devexit dwc3_remove(struct platform_device *pdev)s
+static int __devexit dwc3_remove(struct platform_device *pdev)
 {
 	struct dwc3	*dwc = platform_get_drvdata(pdev);
 	struct resource	*res;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+
+	pm_runtime_disable(&pdev->dev);
 
 	dwc3_debugfs_exit(dwc);
 
@@ -761,9 +763,6 @@ static int __devexit dwc3_remove(struct platform_device *pdev)s
 	}
 
 	dwc3_core_exit(dwc);
-
-	pm_runtime_put(&pdev->dev);
-	pm_runtime_disable(&pdev->dev);
 
 	return 0;
 }

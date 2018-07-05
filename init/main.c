@@ -68,7 +68,6 @@
 #include <linux/shmem_fs.h>
 #include <linux/slab.h>
 #include <linux/perf_event.h>
-#include <linux/random.h>
 
 #include <asm/io.h>
 #include <asm/bugs.h>
@@ -610,7 +609,7 @@ asmlinkage void __init start_kernel(void)
 	parse_early_param();
 	parse_args("Booting kernel", static_command_line, __start___param,
 		   __stop___param - __start___param,
-		   -1, -1, &unknown_bootoption);
+		   0, 0, &unknown_bootoption);
 
 	jump_label_init();
 
@@ -668,6 +667,9 @@ asmlinkage void __init start_kernel(void)
 	early_boot_irqs_disabled = false;
 	local_irq_enable();
 
+	/* Interrupts are enabled now so all GFP allocations are safe. */
+	gfp_allowed_mask = __GFP_BITS_MASK;
+
 	kmem_cache_init_late();
 
 	/*
@@ -710,12 +712,8 @@ asmlinkage void __init start_kernel(void)
 	pidmap_init();
 	anon_vma_init();
 #ifdef CONFIG_X86
-	if (efi_enabled(EFI_RUNTIME_SERVICES))
+	if (efi_enabled)
 		efi_enter_virtual_mode();
-#endif
-#ifdef CONFIG_X86_ESPFIX64
-	/* Should be run before the first non-init thread is created */
-	init_espfix_bsp();
 #endif
 	thread_info_cache_init();
 	cred_init();
@@ -741,9 +739,6 @@ asmlinkage void __init start_kernel(void)
 
 	acpi_early_init(); /* before LAPIC and SMP init */
 	sfi_init_late();
-
-	if (efi_enabled(EFI_RUNTIME_SERVICES))
-		efi_free_boot_services();
 
 	ftrace_init();
 
@@ -891,7 +886,6 @@ static void __init do_basic_setup(void)
 	do_ctors();
 	usermodehelper_enable();
 	do_initcalls();
-	random_int_secret_init();
 }
 
 static void __init do_pre_smp_initcalls(void)
@@ -1005,10 +999,6 @@ static int __init kernel_init(void * unused)
 	 * Wait until kthreadd is all set-up.
 	 */
 	wait_for_completion(&kthreadd_done);
-
-	/* Now the scheduler is fully set up and can do blocking allocations */
-	gfp_allowed_mask = __GFP_BITS_MASK;
-
 	/*
 	 * init can allocate pages on any node
 	 */
