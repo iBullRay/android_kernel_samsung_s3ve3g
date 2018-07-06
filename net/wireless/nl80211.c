@@ -5473,7 +5473,7 @@ void __cfg80211_send_event_skb(struct sk_buff *skb, gfp_t gfp)
 		genlmsg_multicast_netns(wiphy_net(&rdev->wiphy), skb, 0,
 	nl80211_testmode_mcgrp.id, gfp);
 }
-EXPORT_SYMBOL(cfg80211_testmode_alloc_event_skb);
+EXPORT_SYMBOL(__cfg80211_testmode_alloc_event_skb);
 #endif
 
 static int nl80211_connect(struct sk_buff *skb, struct genl_info *info)
