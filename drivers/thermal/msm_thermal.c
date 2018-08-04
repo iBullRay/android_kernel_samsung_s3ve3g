@@ -2690,6 +2690,7 @@ int __init msm_thermal_late_init(void)
 					HRTIMER_MODE_ABS);
 	thermal_rtc_hrtimer.function=
 					&thermal_rtc_callback;
+	INIT_WORK(&timer_work, timer_work_fn);
 	msm_thermal_add_timer_nodes();
 
 	return 0;
