@@ -3894,7 +3894,7 @@ CONFIG_SEC_DEBUG_DOUBLE_FREE=y
 # Samsung Rooting Restriction Feature
 #
 # CONFIG_SEC_RESTRICT_ROOTING is not set
-CONFIG_RESTART_REASON_DDR=y
+# CONFIG_RESTART_REASON_DDR is not set
 
 #
 # Security options
