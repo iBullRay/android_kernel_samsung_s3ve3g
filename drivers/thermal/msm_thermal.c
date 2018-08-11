@@ -969,7 +969,9 @@ static __ref int do_hotplug(void *data)
 		return -EINVAL;
 
 	while (!kthread_should_stop()) {
-		wait_for_completion(&hotplug_notify_complete);
+		while (wait_for_completion_interruptible(
+			&hotplug_notify_complete) != 0)
+			;
 		INIT_COMPLETION(hotplug_notify_complete);
 		mask = 0;
 
@@ -1406,7 +1408,9 @@ static __ref int do_freq_mitigation(void *data)
 	uint32_t cpu = 0, max_freq_req = 0, min_freq_req = 0;
 
 	while (!kthread_should_stop()) {
-		wait_for_completion(&freq_mitigation_complete);
+		while (wait_for_completion_interruptible(
+			&freq_mitigation_complete) != 0)
+			;
 		INIT_COMPLETION(freq_mitigation_complete);
 
 		get_online_cpus();
@@ -1565,12 +1569,14 @@ int therm_set_threshold(struct threshold_info *thresh_inp)
 {
 	int ret = 0, i = 0, err = 0;
 	struct therm_threshold *thresh_ptr;
+
 	if (!thresh_inp) {
 		pr_err("%s: %s: Invalid input\n",
 			   KBUILD_MODNAME, __func__);
 		ret = -EINVAL;
 		goto therm_set_exit;
 	}
+
 	thresh_inp->thresh_triggered = false;
 	for (i = 0; i < thresh_inp->thresh_ct; i++) {
 		thresh_ptr = &thresh_inp->thresh_list[i];
@@ -1582,21 +1588,26 @@ int therm_set_threshold(struct threshold_info *thresh_inp)
 			err = 0;
 		}
 	}
-	therm_set_exit:
+
+therm_set_exit:
 	return ret;
 }
+
 static void vdd_restriction_notify(struct therm_threshold *trig_thresh)
 {
 	int ret = 0;
 	static uint32_t vdd_sens_status;
+
 	if (!vdd_rstr_enabled)
 		return;
 	if (!trig_thresh) {
 		pr_err("%s:%s Invalid input\n", KBUILD_MODNAME, __func__);
 		return;
 	}
+
 	if (trig_thresh->trip_triggered < 0)
 		goto set_and_exit;
+
 	mutex_lock(&vdd_rstr_mutex);
 	pr_debug("%s: sensor%d reached %d thresh for Vdd restriction\n",
 			 KBUILD_MODNAME, trig_thresh->sensor_id,
@@ -1615,6 +1626,7 @@ static void vdd_restriction_notify(struct therm_threshold *trig_thresh)
 			goto unlock_and_exit;
 			break;
 	}
+
 	ret = vdd_restriction_apply_all((vdd_sens_status) ? 1 : 0);
 	if (ret) {
 		pr_err("%s vdd rstr votlage for all failed\n",
@@ -1622,19 +1634,25 @@ static void vdd_restriction_notify(struct therm_threshold *trig_thresh)
 			   "Enable" : "Disable");
 		goto unlock_and_exit;
 	}
-	unlock_and_exit:
+
+unlock_and_exit:
 	mutex_unlock(&vdd_rstr_mutex);
-	set_and_exit:
+set_and_exit:
 	set_threshold(trig_thresh->sensor_id, trig_thresh->threshold);
 	return;
 }
+
 static __ref int do_thermal_monitor(void *data)
 {
 	int ret = 0, i, j;
 	struct therm_threshold *sensor_list;
+
 	while (!kthread_should_stop()) {
-		wait_for_completion(&thermal_monitor_complete);
+		while (wait_for_completion_interruptible(
+			&thermal_monitor_complete) != 0)
+			;
 		INIT_COMPLETION(thermal_monitor_complete);
+
 		for (i = 0; i < MSM_LIST_MAX_NR; i++) {
 			if (!thresh[i].thresh_triggered)
 				continue;
@@ -1650,10 +1668,12 @@ static __ref int do_thermal_monitor(void *data)
 	}
 	return ret;
 }
+
 static void thermal_monitor_init(void)
 {
 	if (thermal_monitor_task)
 		return;
+
 	init_completion(&thermal_monitor_complete);
 	thermal_monitor_task = kthread_run(do_thermal_monitor, NULL,
 									   "msm_thermal:therm_monitor");
@@ -1662,14 +1682,18 @@ static void thermal_monitor_init(void)
 			   KBUILD_MODNAME);
 		goto init_exit;
 	}
+
 	if (vdd_rstr_enabled)
 		therm_set_threshold(&thresh[MSM_VDD_RESTRICTION]);
-	init_exit:
+
+init_exit:
 	return;
 }
+
 static int msm_thermal_notify(enum thermal_trip_type type, int temp, void *data)
 {
 	struct therm_threshold *thresh_data = (struct therm_threshold *)data;
+
 	if (thermal_monitor_task) {
 		thresh_data->trip_triggered = type;
 		thresh_data->parent->thresh_triggered = true;
@@ -1680,18 +1704,20 @@ static int msm_thermal_notify(enum thermal_trip_type type, int temp, void *data)
 	}
 	return 0;
 }
+
 static int init_threshold(enum msm_thresh_list index,
-						  int sensor_id, int32_t hi_temp, int32_t low_temp,
-						  void (*callback)(struct therm_threshold *))
+						int sensor_id, int32_t hi_temp, int32_t low_temp,
+						void (*callback)(struct therm_threshold *))
 {
 	int ret = 0, i;
 	struct therm_threshold *thresh_ptr;
+	
 	if (!callback || index >= MSM_LIST_MAX_NR || index < 0
-		|| sensor_id == -ENODEV) {
-		pr_err("%s: Invalid input to init_threshold\n",
-			   KBUILD_MODNAME);
-		ret = -EINVAL;
-	goto init_thresh_exit;
+			|| sensor_id == -ENODEV) {
+			pr_err("%s: Invalid input to init_threshold\n",
+					KBUILD_MODNAME);
+			ret = -EINVAL;
+			goto init_thresh_exit;
 		}
 		if (thresh[index].thresh_list) {
 			pr_err("%s: threshold already initialized\n",
@@ -1699,8 +1725,9 @@ static int init_threshold(enum msm_thresh_list index,
 			ret = -EEXIST;
 			goto init_thresh_exit;
 		}
+
 		thresh[index].thresh_ct = (sensor_id == MONITOR_ALL_TSENS) ?
-		max_tsens_num : 1;
+												max_tsens_num : 1;
 		thresh[index].thresh_triggered = false;
 		thresh[index].thresh_list = kzalloc(sizeof(struct therm_threshold) *
 		thresh[index].thresh_ct, GFP_KERNEL);
@@ -1709,6 +1736,7 @@ static int init_threshold(enum msm_thresh_list index,
 			ret = -ENOMEM;
 			goto init_thresh_exit;
 		}
+
 		thresh_ptr = thresh[index].thresh_list;
 		if (sensor_id == MONITOR_ALL_TSENS) {
 			for (i = 0; i < max_tsens_num; i++) {
@@ -1718,10 +1746,10 @@ static int init_threshold(enum msm_thresh_list index,
 				thresh_ptr[i].parent = &thresh[index];
 				thresh_ptr[i].threshold[0].temp = hi_temp;
 				thresh_ptr[i].threshold[0].trip =
-				THERMAL_TRIP_CONFIGURABLE_HI;
+						THERMAL_TRIP_CONFIGURABLE_HI;
 				thresh_ptr[i].threshold[1].temp = low_temp;
 				thresh_ptr[i].threshold[1].trip =
-				THERMAL_TRIP_CONFIGURABLE_LOW;
+						THERMAL_TRIP_CONFIGURABLE_LOW;
 				thresh_ptr[i].threshold[0].notify =
 				thresh_ptr[i].threshold[1].notify = msm_thermal_notify;
 				thresh_ptr[i].threshold[0].data =
@@ -1735,17 +1763,18 @@ static int init_threshold(enum msm_thresh_list index,
 			thresh_ptr->parent = &thresh[index];
 			thresh_ptr->threshold[0].temp = hi_temp;
 			thresh_ptr->threshold[0].trip =
-			THERMAL_TRIP_CONFIGURABLE_HI;
+					THERMAL_TRIP_CONFIGURABLE_HI;
 			thresh_ptr->threshold[1].temp = low_temp;
 			thresh_ptr->threshold[1].trip =
-			THERMAL_TRIP_CONFIGURABLE_LOW;
+					THERMAL_TRIP_CONFIGURABLE_LOW;
 			thresh_ptr->threshold[0].notify =
 			thresh_ptr->threshold[1].notify = msm_thermal_notify;
 			thresh_ptr->threshold[0].data =
 			thresh_ptr->threshold[1].data = (void *)thresh_ptr;
 		}
-		init_thresh_exit:
-		return ret;
+
+init_thresh_exit:
+	return ret;
 }
 
 /*
