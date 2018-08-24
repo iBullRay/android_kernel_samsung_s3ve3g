@@ -1092,6 +1092,13 @@ static struct platform_driver wcnss_ctrl_driver = {
 	.remove	= __devexit_p(wcnss_ctrl_remove),
 };
 
+void wcnss_get_monotonic_boottime(struct timespec *ts)
+{
+    get_monotonic_boottime(ts);
+}
+EXPORT_SYMBOL(wcnss_get_monotonic_boottime);
+
+
 struct device *wcnss_wlan_get_device(void)
 {
 	if (penv && penv->pdev && penv->smd_channel_ready)
@@ -1115,6 +1122,14 @@ struct wcnss_wlan_config *wcnss_get_wlan_config(void)
 	return NULL;
 }
 EXPORT_SYMBOL(wcnss_get_wlan_config);
+
+int wcnss_is_hw_pronto_ver3(void)
+{
+    if (penv && penv->pdev)
+        return penv->wlan_config.is_pronto_v3;
+    return 0;
+}
+EXPORT_SYMBOL(wcnss_is_hw_pronto_ver3);
 
 int wcnss_device_ready(void)
 {
@@ -2137,8 +2152,12 @@ wcnss_trigger_config(struct platform_device *pdev)
 	unsigned long wcnss_phys_addr;
 	int size = 0;
 	struct resource *res;
+    int is_pronto_v3;
 	int has_pronto_hw = of_property_read_bool(pdev->dev.of_node,
 									"qcom,has-pronto-hw");
+
+    is_pronto_v3 = of_property_read_bool(pdev->dev.of_node,
+                                         "qcom,is-pronto-v3");
 
 	if (of_property_read_u32(pdev->dev.of_node,
 			"qcom,wlan-rx-buff-count", &penv->wlan_rx_buff_count)) {
@@ -2162,6 +2181,7 @@ wcnss_trigger_config(struct platform_device *pdev)
 	}
 	penv->wcnss_hw_type = (has_pronto_hw) ? WCNSS_PRONTO_HW : WCNSS_RIVA_HW;
 	penv->wlan_config.use_48mhz_xo = has_48mhz_xo;
+    penv->wlan_config.is_pronto_v3 = is_pronto_v3;
 
 	if (WCNSS_CONFIG_UNSPECIFIED == has_autodetect_xo && has_pronto_hw) {
 		has_autodetect_xo = of_property_read_bool(pdev->dev.of_node,
