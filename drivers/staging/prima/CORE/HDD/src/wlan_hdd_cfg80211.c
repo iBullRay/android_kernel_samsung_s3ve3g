@@ -8858,7 +8858,7 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
                           params->supported_oper_classes_len,
                           SIR_MAC_MAX_SUPP_OPER_CLASSES);
                 params->supported_oper_classes_len =
-                SIR_MAC_MAX_SUPP_OPER_CLASSES;
+                    SIR_MAC_MAX_SUPP_OPER_CLASSES;
             }
             vos_mem_copy(StaParams.supported_oper_classes,
                          params->supported_oper_classes,
