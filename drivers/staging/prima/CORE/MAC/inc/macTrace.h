@@ -76,3 +76,4 @@ tANI_U8* macTraceGetLimMlmState(tANI_U16 mlmState);
 tANI_U8* macTraceGetTLState(tANI_U16 tlState);
 
 #endif
+
