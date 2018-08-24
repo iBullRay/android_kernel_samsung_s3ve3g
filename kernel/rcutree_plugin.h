@@ -2110,7 +2110,7 @@ static void rcu_cleanup_after_idle(int cpu)
 {
     struct rcu_dynticks *rdtp = &per_cpu(rcu_dynticks, cpu);
 
-    del_timer(&per_cpu(rcu_idle_gp_timer, cpu));
+    del_timer(&rdtp->idle_gp_timer);
     trace_rcu_prep_idle("Cleanup after idle");
 }
 
