@@ -2375,8 +2375,8 @@ wcnss_trigger_config(struct platform_device *pdev)
 	unsigned long wcnss_phys_addr;
 	int size = 0;
 	struct resource *res;
-    int pil_retry = 0;
     int is_pronto_v3;
+    int pil_retry = 0;
 	int has_pronto_hw = of_property_read_bool(pdev->dev.of_node,
 									"qcom,has-pronto-hw");
 
