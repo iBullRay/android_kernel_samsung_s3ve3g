@@ -56,6 +56,8 @@
 #define WCNSS_ENABLE_PC_LATENCY	PM_QOS_DEFAULT_VALUE
 #define WCNSS_PM_QOS_TIMEOUT	15000
 #define WAIT_FOR_CBC_IND     2
+#define IS_CAL_DATA_PRESENT 0
+
 /* module params */
 #define WCNSS_CONFIG_UNSPECIFIED (-1)
 #define UINT32_MAX (0xFFFFFFFFU)
@@ -928,8 +930,10 @@ void wcnss_log_debug_regs_on_bite(void)
 
 		if (clk_rate) {
 			wcnss_pronto_log_debug_regs();
+#ifdef CONFIG_WCNSS_REGISTER_DUMP_ON_BITE
 			if (wcnss_get_mux_control())
 				wcnss_log_iris_regs();
+#endif
 		} else {
 			pr_err("clock frequency is zero, cannot access PMU or other registers\n");
 			wcnss_log_iris_regs();
@@ -943,8 +947,10 @@ void wcnss_reset_intr(void)
 {
 	if (wcnss_hardware_type() == WCNSS_PRONTO_HW) {
 		wcnss_pronto_log_debug_regs();
+#ifdef CONFIG_WCNSS_REGISTER_DUMP_ON_BITE
 		if (wcnss_get_mux_control())
 			wcnss_log_iris_regs();
+#endif
 		wmb();
 		__raw_writel(1 << 16, penv->fiq_reg);
 	} else {
@@ -962,8 +968,10 @@ void wcnss_reset_fiq(bool clk_chk_en)
 			wcnss_log_debug_regs_on_bite();
 		} else {
 			wcnss_pronto_log_debug_regs();
+#ifdef CONFIG_WCNSS_REGISTER_DUMP_ON_BITE
 			if (wcnss_get_mux_control())
 				wcnss_log_iris_regs();
+#endif
 		}
 		/* Insert memory barrier before writing fiq register */
 		wmb();
@@ -2252,7 +2260,7 @@ static void wcnss_nvbin_dnld_main(struct work_struct *worker)
 	if (!FW_CALDATA_CAPABLE())
 		goto nv_download;
 
-	if (!penv->fw_cal_available && WCNSS_CONFIG_UNSPECIFIED
+    if (!penv->fw_cal_available && IS_CAL_DATA_PRESENT
 		!= has_calibrated_data && !penv->user_cal_available) {
 		while (!penv->user_cal_available && retry++ < 5)
 			msleep(500);
@@ -2834,16 +2842,16 @@ static int wcnss_notif_cb(struct notifier_block *this, unsigned long code,
 {
 	pr_info("%s: wcnss notification event: %lu\n", __func__, code);
 
-         if (code == SUBSYS_BEFORE_SHUTDOWN) {
-                 penv->is_shutdown = 1;
-                 wcnss_disable_pc_add_req();
-                 schedule_delayed_work(&penv->wcnss_pm_qos_del_req,
-                                 msecs_to_jiffies(WCNSS_PM_QOS_TIMEOUT));
-         } else if (code == SUBSYS_POWERUP_FAILURE) {
-                 wcnss_pronto_log_debug_regs();
-                 wcnss_disable_pc_remove_req();
-         } else if (SUBSYS_AFTER_POWERUP == code)
-                 penv->is_shutdown = 0;
+    if (code == SUBSYS_BEFORE_SHUTDOWN) {
+            penv->is_shutdown = 1;
+            wcnss_disable_pc_add_req();
+            schedule_delayed_work(&penv->wcnss_pm_qos_del_req,
+                            msecs_to_jiffies(WCNSS_PM_QOS_TIMEOUT));
+    } else if (code == SUBSYS_POWERUP_FAILURE) {
+            wcnss_pronto_log_debug_regs();
+            wcnss_disable_pc_remove_req();
+    } else if (SUBSYS_AFTER_POWERUP == code)
+            penv->is_shutdown = 0;
 
 	return NOTIFY_DONE;
 }
