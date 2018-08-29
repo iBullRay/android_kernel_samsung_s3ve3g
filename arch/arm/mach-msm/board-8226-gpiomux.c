@@ -176,13 +176,13 @@ static struct gpiomux_setting wcnss_5wire_active_cfg = {
 };
 
 static struct gpiomux_setting wcnss_5gpio_suspend_cfg = {
-        .func = GPIOMUX_FUNC_GPIO,
-        .drv  = GPIOMUX_DRV_2MA,
-        .pull = GPIOMUX_PULL_UP,
+    .func = GPIOMUX_FUNC_GPIO,
+    .drv  = GPIOMUX_DRV_2MA,
+    .pull = GPIOMUX_PULL_UP,
 };
 
 static struct gpiomux_setting wcnss_5gpio_active_cfg = {
-        .func = GPIOMUX_FUNC_GPIO,
+    .func = GPIOMUX_FUNC_GPIO,
 	.drv  = GPIOMUX_DRV_6MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
