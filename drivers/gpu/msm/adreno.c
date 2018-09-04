@@ -78,6 +78,7 @@
 
 #define KGSL_LOG_LEVEL_DEFAULT 3
 
+static void adreno_start_work(struct work_struct *work);
 static void adreno_input_work(struct work_struct *work);
 
 /*
@@ -267,7 +268,7 @@ static void adreno_input_work(struct work_struct *work)
 			struct adreno_device, input_work);
 	struct kgsl_device *device = &adreno_dev->dev;
 
-	mutex_lock(&device->mutex);
+	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
 	device->flags |= KGSL_FLAG_WAKE_ON_TOUCH;
 
@@ -285,7 +286,7 @@ static void adreno_input_work(struct work_struct *work)
 	 */
 	mod_timer(&device->idle_timer,
 		jiffies + msecs_to_jiffies(_wake_timeout));
-	mutex_unlock(&device->mutex);
+	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
 }
 
 /*
@@ -2094,6 +2095,47 @@ error_clk_off:
 	return status;
 }
 
+static int _status;
+
+/**
+ * _adreno_start_work() - Work handler for the low latency adreno_start
+ * @work: Pointer to the work_struct for
+ *
+ * The work callbak for the low lantecy GPU start - this executes the core
+ * _adreno_start function in the workqueue.
+ */
+static void adreno_start_work(struct work_struct *work)
+{
+	struct adreno_device *adreno_dev = container_of(work,
+		struct adreno_device, start_work);
+	struct kgsl_device *device = &adreno_dev->dev;
+
+	/* Nice ourselves to be higher priority but not too high priority */
+	set_user_nice(current, _wake_nice);
+
+	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
+	/*
+	 *  If adreno start is already called, no need to call it again
+	 *  it can lead to unpredictable behavior if we try to start
+	 *  the device that is already started.
+	 *  Below is the sequence of events that can go bad without the check
+	 *  1) thread 1 calls adreno_start to be scheduled on high priority wq
+	 *  2) thread 2 calls adreno_start with normal priority
+	 *  3) thread 1 after checking the device to be in slumber state gives
+	 *     up mutex to be scheduled on high priority wq
+	 *  4) thread 2 after checking the device to be in slumber state gets
+	 *     the mutex and finishes adreno_start before thread 1 is scheduled
+	 *     on high priority wq.
+	 *  5) thread 1 gets scheduled on high priority wq and executes
+	 *     adreno_start again. This leads to unpredictable behavior.
+	 */
+	if (!test_bit(ADRENO_DEVICE_STARTED, &adreno_dev->priv))
+		_status = _adreno_start(adreno_dev);
+	else
+		_status = 0;
+	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
+}
+
 /**
  * adreno_start() - Power up and initialize the GPU
  * @device: Pointer to the KGSL device to power up
@@ -2106,18 +2148,21 @@ error_clk_off:
 static int adreno_start(struct kgsl_device *device, int priority)
 {
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
-	int nice = task_nice(current);
-	int ret;
 
-	if (priority && (_wake_nice < nice))
-		set_user_nice(current, _wake_nice);
+	/* No priority (normal latency) call the core start function directly */
+	if (!priority)
+		return _adreno_start(adreno_dev);
 
-	ret = _adreno_start(adreno_dev);
+	/*
+	 * If priority is specified (low latency) then queue the work in a
+	 * higher priority work queue and wait for it to finish
+	 */
+	queue_work(adreno_wq, &adreno_dev->start_work);
+	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
+	flush_work(&adreno_dev->start_work);
+	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
-	if (priority)
-		set_user_nice(current, nice);
-
-	return ret;
+	return _status;
 }
 
 static int adreno_stop(struct kgsl_device *device)
