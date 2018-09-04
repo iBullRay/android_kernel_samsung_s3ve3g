@@ -267,7 +267,7 @@ static void adreno_input_work(struct work_struct *work)
 			struct adreno_device, input_work);
 	struct kgsl_device *device = &adreno_dev->dev;
 
-	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
+	mutex_lock(&device->mutex);
 
 	device->flags |= KGSL_FLAG_WAKE_ON_TOUCH;
 
@@ -285,7 +285,7 @@ static void adreno_input_work(struct work_struct *work)
 	 */
 	mod_timer(&device->idle_timer,
 		jiffies + msecs_to_jiffies(_wake_timeout));
-	kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
+	mutex_unlock(&device->mutex);
 }
 
 /*
@@ -1626,19 +1626,17 @@ static int adreno_of_get_iommu(struct device_node *parent,
 			goto err;
 		}
 
-		if (!strcmp("gfx3d_user", ctxs[ctx_index].iommu_ctx_name)) {
-		ctxs[ctx_index].ctx_id = 0;
-		} else if (!strcmp("gfx3d_priv",
-		ctxs[ctx_index].iommu_ctx_name)) {
-		ctxs[ctx_index].ctx_id = 1;
-		} else if (!strcmp("gfx3d_spare",
-		ctxs[ctx_index].iommu_ctx_name)) {
-		ctxs[ctx_index].ctx_id = 2;
-		} else {
-		KGSL_CORE_ERR("dt: IOMMU context %s is invalid\n",
-		ctxs[ctx_index].iommu_ctx_name);
-		goto err;
+		ret = of_property_read_u32_array(child, "reg", reg_val, 2);
+		if (ret) {
+			KGSL_CORE_ERR("Unable to read KGSL IOMMU 'reg'\n");
+			goto err;
 		}
+		if (msm_soc_version_supports_iommu_v0())
+			ctxs[ctx_index].ctx_id = (reg_val[0] -
+				data->physstart) >> KGSL_IOMMU_CTX_SHIFT;
+		else
+			ctxs[ctx_index].ctx_id = ((reg_val[0] -
+				data->physstart) >> KGSL_IOMMU_CTX_SHIFT) - 8;
 
 		ctx_index++;
 	}
@@ -2734,7 +2732,7 @@ static int adreno_setproperty(struct kgsl_device_private *dev_priv,
  * Return true if the RBBM status register for the GPU type indicates that the
  * hardware is idle
  */
-bool adreno_hw_isidle(struct kgsl_device *device)
+static bool adreno_hw_isidle(struct kgsl_device *device)
 {
 	unsigned int reg_rbbm_status;
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
@@ -2846,12 +2844,6 @@ bool adreno_isidle(struct kgsl_device *device)
 		return true;
 
 	rptr = adreno_get_rptr(&adreno_dev->ringbuffer);
-
-	/*
-	 * wptr is updated when we add commands to ringbuffer, add a barrier
-	 * to make sure updated wptr is compared to rptr
-	 */
-	smp_mb();
 
 	if (rptr == adreno_dev->ringbuffer.wptr)
 		return adreno_hw_isidle(device);
