@@ -267,26 +267,24 @@ err_invalid_input:
 	return ret;
 }
 
-struct msm_smem *get_same_fd_buffer(struct msm_vidc_inst *inst, 
+struct msm_smem *get_same_fd_buffer(struct msm_vidc_inst *inst,
 			struct list_head *list, int fd)
 {
 	struct buffer_info *temp;
-	struct msm_smem *same_fd_handle = NULL;  
+	struct msm_smem *same_fd_handle = NULL;
 
 	int i;
 	if (fd == 0)
 		return NULL;
-
 	if (!list || fd < 0) {
 		dprintk(VIDC_ERR, "Invalid input\n");
 		goto err_invalid_input;
 	}
-
 	mutex_lock(&inst->lock);
 	list_for_each_entry(temp, list, list) {
 		for (i = 0; (i < temp->num_planes)
 			&& (i < VIDEO_MAX_PLANES); i++) {
-			if (temp && (temp->fd[i] == fd) &&		
+			if (temp && (temp->fd[i] == fd) &&
 				temp->handle[i] && temp->mapped[i])  {
 				temp->same_fd_ref[i]++;
 				dprintk(VIDC_INFO,
@@ -295,7 +293,7 @@ struct msm_smem *get_same_fd_buffer(struct msm_vidc_inst *inst,
 				break;
 			}
 		}
-		if (same_fd_handle) 
+		if (same_fd_handle)
 			break;
 	}
 	mutex_unlock(&inst->lock);
@@ -513,9 +511,9 @@ int map_and_register_buf(struct msm_vidc_inst *inst, struct v4l2_buffer *b)
 						b->m.planes[i].reserved[0]);
 
 		populate_buf_info(binfo, b, i);
-		if (same_fd_handle) {	
+		if (same_fd_handle) {
 			binfo->device_addr[i] =
-			same_fd_handle->device_addr + binfo->buff_off[i]; 
+			same_fd_handle->device_addr + binfo->buff_off[i];
 			b->m.planes[i].m.userptr = binfo->device_addr[i];
 			binfo->mapped[i] = false;
 			binfo->handle[i] = same_fd_handle;
@@ -757,26 +755,6 @@ int msm_vidc_release_buffers(void *instance, int buffer_type)
 
 	if (!inst)
 		return -EINVAL;
-	if (!inst->in_reconfig) {																  
-		rc = msm_comm_try_state(inst, MSM_VIDC_RELEASE_RESOURCES_DONE); 						
-		if (rc) {																				
-			dprintk(VIDC_ERR,																	  
-					"Failed to move inst: %p to release res done\n",								  
-					inst);																			  
-		}																						
-	}																						  
-																							  
-	/*																						  
-	* In dynamic buffer mode, driver needs to release resources,							  
-	* but not call release buffers on firmware, as the buffers								  
-	* were never registered with firmware.													  
-	*/																						  
-	if ((buffer_type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) &&								  
-		(inst->buffer_mode_set[CAPTURE_PORT] == 												
-				HAL_BUFFER_MODE_DYNAMIC)) { 														
-		goto free_and_unmap;																	
-	}																						  
-																							  
 
 	if (!inst->in_reconfig) {
 		rc = msm_comm_try_state(inst, MSM_VIDC_RELEASE_RESOURCES_DONE);
@@ -823,7 +801,6 @@ int msm_vidc_release_buffers(void *instance, int buffer_type)
 		mutex_unlock(&inst->lock);
 		if (!release_buf)
 			continue;
-		release_buf = false;
 		if (inst->session_type == MSM_VIDC_DECODER)
 			rc = msm_vdec_release_buf(instance,
 				&buffer_info);
@@ -854,7 +831,7 @@ free_and_unmap:
 					msm_comm_smem_free(inst,
 							bi->handle[i]);
 				}
-			}			
+			}
 			kfree(bi);
 		}
 	}

@@ -21,12 +21,7 @@
 
 #define MSM_VDEC_DVC_NAME "msm_vdec_8974"
 #define MIN_NUM_OUTPUT_BUFFERS 4
-#if defined(CONFIG_MACH_KLTE_DCM)
-//Kishore MSM Patch https://www.codeaurora.org/cgit/quic/la//kernel/msm/commit/?id=0b07789494d4d3a96bba5d60e6783ae6ea69ecf5
 #define MAX_NUM_OUTPUT_BUFFERS VB2_MAX_FRAME
-#else
-#define MAX_NUM_OUTPUT_BUFFERS 6
-#endif /* defined(CONFIG_MACH_KLTE_DCM) */
 #define DEFAULT_VIDEO_CONCEAL_COLOR_BLACK 0x8010
 #define MB_SIZE_IN_PIXEL (16 * 16)
 
@@ -1759,17 +1754,17 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 					"Failed :Disabling OUTPUT port : %d\n",
 					rc);
 			break;
-		case V4L2_CID_MPEG_VIDC_VIDEO_CONCEAL_COLOR:
-			property_id = HAL_PARAM_VDEC_CONCEAL_COLOR;
-			property_val = ctrl->val;
-			pdata = &property_val;
-			break;				
 		default:
 			dprintk(VIDC_ERR,
 				"Failed : Unsupported multi stream setting\n");
 			rc = -ENOTSUPP;
 			break;
 		}
+		break;
+	case V4L2_CID_MPEG_VIDC_VIDEO_CONCEAL_COLOR:
+		property_id = HAL_PARAM_VDEC_CONCEAL_COLOR;
+		property_val = ctrl->val;
+		pdata = &property_val;
 		break;
 	case V4L2_CID_MPEG_VIDC_VIDEO_BUFFER_SIZE_LIMIT:
 	{
@@ -1786,13 +1781,6 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 	case V4L2_CID_MPEG_VIDC_VIDEO_OPERATING_RATE:
 		property_id = 0;
 		break;
-	case V4L2_CID_MPEG_VIDC_VIDEO_BUFFER_SIZE_LIMIT:
-	{
-		inst->capability.buffer_size_limit = ctrl->val;
-		dprintk(VIDC_DBG,
-			"Limiting input buffer size to :%u\n", ctrl->val);
-		break;
-	}
 	default:
 		break;
 	}

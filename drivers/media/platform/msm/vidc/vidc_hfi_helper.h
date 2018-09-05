@@ -640,12 +640,6 @@ struct hfi_properties_supported {
 	u32 rg_properties[1];
 };
 
-struct hfi_vpe_color_space_conversion {
-	u32 csc_matrix[9];
-	u32 csc_bias[3];
-	u32 csc_limit[6];
-};
-
 #define HFI_ROTATE_NONE					(HFI_COMMON_BASE + 0x1)
 #define HFI_ROTATE_90					(HFI_COMMON_BASE + 0x2)
 #define HFI_ROTATE_180					(HFI_COMMON_BASE + 0x3)
@@ -785,6 +779,11 @@ struct hfi_mvc_buffer_lauout_descp_type {
 #define HFI_TEST_SSR_SW_ERR_FATAL	0x1
 #define HFI_TEST_SSR_SW_DIV_BY_ZERO	0x2
 #define HFI_TEST_SSR_HW_WDOG_IRQ	0x3
+
+struct vidc_hal_cmd_pkt_hdr {
+	u32 size;
+	u32 packet_type;
+};
 
 struct vidc_hal_msg_pkt_hdr {
 	u32 size;
