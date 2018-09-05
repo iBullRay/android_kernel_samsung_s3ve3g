@@ -2946,6 +2946,31 @@ static void venus_hfi_pm_hndlr(struct work_struct *work)
 		dprintk(VIDC_ERR, "Failed venus power off");
 clks_enabled:
 	mutex_unlock(&device->clk_pwr_lock);
+	return;
+
+err_power_off:
+skip_power_off:
+
+	/*
+	* When power collapse is escaped, driver no need to inform Venus.
+	* Venus is self-sufficient to come out of the power collapse at
+	* any stage. Driver can skip power collapse and continue with
+	* normal execution.
+	*/
+
+	/* Cancel pending delayed works if any */
+	cancel_delayed_work(&venus_hfi_pm_work);
+	dprintk(VIDC_WARN, "Power off skipped (%d, %d)\n",
+		device->clk_state, device->pc_num_cmds);
+
+	mutex_unlock(&device->clk_pwr_lock);
+
+	rc = __alloc_set_ocmem(device, true);
+	if (rc) {
+		dprintk(VIDC_WARN,
+			"Failed to re-allocate OCMEM. Performance will be impacted\n");
+	}
+	return;
 }
 
 static int venus_hfi_try_clk_gating(struct venus_hfi_device *device)
