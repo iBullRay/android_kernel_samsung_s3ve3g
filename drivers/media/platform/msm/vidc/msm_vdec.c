@@ -23,7 +23,7 @@
 #define MIN_NUM_OUTPUT_BUFFERS 4
 #if defined(CONFIG_MACH_KLTE_DCM)
 //Kishore MSM Patch https://www.codeaurora.org/cgit/quic/la//kernel/msm/commit/?id=0b07789494d4d3a96bba5d60e6783ae6ea69ecf5
-#define MAX_NUM_OUTPUT_BUFFERS VIDEO_MAX_FRAME
+#define MAX_NUM_OUTPUT_BUFFERS VB2_MAX_FRAME
 #else
 #define MAX_NUM_OUTPUT_BUFFERS 6
 #endif /* defined(CONFIG_MACH_KLTE_DCM) */
