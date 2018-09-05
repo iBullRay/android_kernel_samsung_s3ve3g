@@ -744,6 +744,8 @@ int msm_vdec_reqbufs(struct msm_vidc_inst *inst, struct v4l2_requestbuffers *b)
 	mutex_lock(&q->lock);
 	rc = vb2_reqbufs(&q->vb2_bufq, b);
 	mutex_unlock(&q->lock);
+	if (rc)
+		dprintk(VIDC_DBG, "Failed to get reqbufs, %d\n", rc);
 	return rc;
 }
 
