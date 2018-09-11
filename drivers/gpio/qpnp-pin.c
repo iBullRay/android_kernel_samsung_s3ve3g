@@ -921,6 +921,7 @@ static int qpnp_pin_apply_config(struct qpnp_pin_chip *q_chip,
 static int qpnp_pin_free_chip(struct qpnp_pin_chip *q_chip)
 {
 	struct spmi_device *spmi = q_chip->spmi;
+	struct qpnp_pin_spec *q_spec = NULL;
 	int i, rc = 0;
 
 	if (q_chip->chip_gpios)
