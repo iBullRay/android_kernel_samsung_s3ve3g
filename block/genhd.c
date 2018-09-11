@@ -25,7 +25,7 @@ static DEFINE_MUTEX(block_class_lock);
 struct kobject *block_depr;
 
 /* for extended dynamic devt allocation, currently only one major is used */
-#define MAX_EXT_DEVT		(1 << MINORBITS)
+#define NR_EXT_DEVT		(1 << MINORBITS)
 
 /* For extended devt allocation.  ext_devt_lock prevents look up
  * results from going away underneath its user.
@@ -431,11 +431,6 @@ int blk_alloc_devt(struct hd_struct *part, dev_t *devt)
 
 	if (rc)
 		return rc;
-
-	if (idx > MAX_EXT_DEVT) {
-		idr_remove(&ext_devt_idr, idx);
-		return -EBUSY;
-	}
 
 	*devt = MKDEV(BLOCK_EXT_MAJOR, blk_mangle_minor(idx));
 	return 0;
