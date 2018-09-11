@@ -542,6 +542,8 @@ int msm_destroy_session(unsigned int session_id)
 	msm_delete_entry(msm_session_q, struct msm_session,
 		list, session);
 
+	pr_warn("%s : Succeed", __func__);
+
 	return 0;
 }
 
