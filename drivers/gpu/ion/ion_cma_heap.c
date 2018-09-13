@@ -89,19 +89,24 @@ static int ion_cma_allocate(struct ion_heap *heap, struct ion_buffer *buffer,
 	info->table = kmalloc(sizeof(struct sg_table), GFP_KERNEL);
 	if (!info->table) {
 		dev_err(dev, "Fail to allocate sg table\n");
-		goto err;
+		goto free_mem;
 	}
 
 	info->is_cached = ION_IS_CACHED(flags);
 
-	ion_cma_get_sgtable(dev,
-			info->table, info->cpu_addr, info->handle, len);
+	if (ion_cma_get_sgtable(dev,
+			info->table, info->cpu_addr, info->handle, len))
+		goto free_table;
 
 	/* keep this for memory release */
 	buffer->priv_virt = info;
 	dev_dbg(dev, "Allocate buffer %p\n", buffer);
 	return 0;
 
+free_table:
+	kfree(info->table);
+free_mem:
+	dma_free_coherent(dev, len, info->cpu_addr, info->handle);
 err:
 	kfree(info);
 	return ION_CMA_ALLOCATE_FAILED;
@@ -156,18 +161,6 @@ static int ion_cma_mmap(struct ion_heap *mapper, struct ion_buffer *buffer,
 {
 	struct device *dev = buffer->heap->priv;
 	struct ion_cma_buffer_info *info = buffer->priv_virt;
-#ifdef CONFIG_TIMA_RKP
-        if (buffer->size) {
-        /* iommu optimization- needs to be turned ON from
-         * the tz side.
-         */
-                cpu_v7_tima_iommu_opt(vma->vm_start, vma->vm_end, (unsigned long)vma->vm_mm->pgd);
-                __asm__ __volatile__ (
-                "mcr    p15, 0, r0, c8, c3, 0\n"
-                "dsb\n"
-                "isb\n");
-        }
-#endif
 
 	if (info->is_cached)
 		return dma_mmap_nonconsistent(dev, vma, info->cpu_addr,
