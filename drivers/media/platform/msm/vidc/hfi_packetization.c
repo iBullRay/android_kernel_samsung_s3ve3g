@@ -1487,22 +1487,6 @@ int create_pkt_cmd_session_set_property(
 		pkt->size += sizeof(u32) * 2;
 		break;
 	}
-	case HAL_PARAM_VPE_COLOR_SPACE_CONVERSION:
-	{
-		struct hfi_vpe_color_space_conversion *hfi = NULL;
-		struct hal_vpe_color_space_conversion *hal = pdata;
-		pkt->rg_property_data[0] =
-				HFI_PROPERTY_PARAM_VPE_COLOR_SPACE_CONVERSION;
-		hfi = (struct hfi_vpe_color_space_conversion *)
-			&pkt->rg_property_data[1];
-		*hfi = *(struct hfi_vpe_color_space_conversion *) hal;
-		pkt->size += sizeof(u32) +
-				sizeof(struct hal_vpe_color_space_conversion);
-
-		dprintk(VIDC_DBG, "%s HAL_PARAM_VPE_COLOR_SPACE_CONVERSION\n",
-				__func__);
-		break;
-	}
 	case HAL_PARAM_VENC_ENABLE_INITIAL_QP:
 	{
 		struct hfi_initial_quantization *hfi;
@@ -1575,7 +1559,7 @@ int create_pkt_ssr_cmd(enum hal_ssr_trigger_type type,
 		struct hfi_cmd_sys_test_ssr_packet *pkt)
 {
 	if (!pkt) {
-		dprintk(VIDC_ERR, "Invalid params, device: %p\n", pkt);
+		dprintk(VIDC_ERR, "Invalid params, device: %pK\n", pkt);
 		return -EINVAL;
 	}
 	pkt->size = sizeof(struct hfi_cmd_sys_test_ssr_packet);
@@ -1588,7 +1572,7 @@ int create_pkt_cmd_sys_image_version(
 		struct hfi_cmd_sys_get_property_packet *pkt)
 {
 	if (!pkt) {
-		dprintk(VIDC_ERR, "%s invalid param :%p\n", __func__, pkt);
+		dprintk(VIDC_ERR, "%s invalid param :%pK\n", __func__, pkt);
 		return -EINVAL;
 	}
 	pkt->size = sizeof(struct hfi_cmd_sys_get_property_packet);

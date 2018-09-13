@@ -45,9 +45,6 @@
 #define HAL_BUFFERFLAG_ENDOFSUBFRAME    0x00000400
 #define HAL_BUFFERFLAG_EOSEQ            0x00200000
 #define HAL_BUFFERFLAG_MBAFF            0x08000000
-/*Start : Qualcomm Local Patch - 20131226 */
-#define HAL_BUFFERFLAG_YUV_601_709_CSC_CLAMP   0x10000000
-/*End : Qualcomm Local Patch - 20131226 */
 #define HAL_BUFFERFLAG_DROP_FRAME       0x20000000
 
 
@@ -189,7 +186,6 @@ enum hal_property {
 	HAL_CONFIG_VENC_USELTRFRAME,
 	HAL_CONFIG_VENC_LTRPERIOD,
 	HAL_PARAM_VENC_HIER_P_NUM_FRAMES,
-	HAL_PARAM_VPE_COLOR_SPACE_CONVERSION,
 	HAL_PARAM_VENC_ENABLE_INITIAL_QP,
 };
 
@@ -831,12 +827,6 @@ struct hal_h264_vui_timing_info {
 	u32 time_scale;
 };
 
-struct hal_vpe_color_space_conversion {
-	u32 csc_matrix[9];
-	u32 csc_bias[3];
-	u32 csc_limit[6];
-};
-
 enum vidc_resource_id {
 	VIDC_RESOURCE_OCMEM = 0x00000001,
 	VIDC_UNUSED_RESORUCE = 0x10000000,
@@ -1172,6 +1162,7 @@ struct hfi_device {
 			int *domain_num, int *partition_num);
 	int (*load_fw)(void *dev);
 	void (*unload_fw)(void *dev);
+	int (*resurrect_fw)(void *dev);
 	int (*get_fw_info)(void *dev, enum fw_info info);
 	int (*get_info) (void *dev, enum dev_info info);
 	int (*get_stride_scanline)(int color_fmt, int width,
