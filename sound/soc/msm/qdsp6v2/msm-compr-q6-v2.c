@@ -10,6 +10,7 @@
  * GNU General Public License for more details.
  */
 
+
 #include <linux/init.h>
 #include <linux/err.h>
 #include <linux/module.h>
@@ -1034,7 +1035,7 @@ static int msm_compr_ioctl(struct snd_pcm_substream *substream,
 			/* check integer overflow */
 			if (ddp->params_length > UINT_MAX/sizeof(int)) {
 				pr_err("%s: Integer overflow ddp->params_length %d\n",
-					   __func__, ddp->params_length);
+				__func__, ddp->params_length);
 				return -EINVAL;
 			}
 			params_length = ddp->params_length*sizeof(int);
