@@ -1557,12 +1557,9 @@ static void _kgsl_cmdbatch_timer(unsigned long data)
 			break;
 		}
 		case KGSL_CMD_SYNCPOINT_TYPE_FENCE:
-			if (event->handle && event->handle->fence)
-				pr_err("  fence: [%p] %s\n",
-					event->handle->fence,
-					event->handle->fence->name);
-			else
-				pr_err("  fence: invalid\n");
+			pr_err("  fence: [%p] %s\n", event->handle,
+				(event->handle && event->handle->fence)
+					? event->handle->fence->name : "NULL");
 			break;
 		}
 	}
