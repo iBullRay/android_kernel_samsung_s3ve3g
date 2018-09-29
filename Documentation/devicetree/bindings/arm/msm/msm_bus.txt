@@ -121,7 +121,6 @@ qcom,thresh:		Beyond this threshold frequency, the mode usage is
 
 
 
-
 Example:
 
 
