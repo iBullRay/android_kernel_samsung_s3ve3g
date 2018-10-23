@@ -30,6 +30,9 @@
 #define GROUP_BYTES 4
 #define ROW_BYTES 16
 #define MAX_VSYNC_COUNT 0xFFFFFFF
+
+static DEFINE_MUTEX(mdss_debug_lock);
+
 struct mdss_debug_data {
 	struct dentry *root;
 	struct list_head base_list;
@@ -57,11 +60,13 @@ static int mdss_debug_base_open(struct inode *inode, struct file *file)
 static int mdss_debug_base_release(struct inode *inode, struct file *file)
 {
 	struct mdss_debug_base *dbg = file->private_data;
+	mutex_lock(&mdss_debug_lock);
 	if (dbg && dbg->buf) {
 		kfree(dbg->buf);
 		dbg->buf_len = 0;
 		dbg->buf = NULL;
 	}
+	mutex_unlock(&mdss_debug_lock);
 	return 0;
 }
 
@@ -92,8 +97,10 @@ static ssize_t mdss_debug_base_offset_write(struct file *file,
 	if (cnt > (dbg->max_offset - off))
 		cnt = dbg->max_offset - off;
 
+	mutex_lock(&mdss_debug_lock);
 	dbg->off = off;
 	dbg->cnt = cnt;
+	mutex_unlock(&mdss_debug_lock);
 
 	pr_debug("offset=%x cnt=%x\n", off, cnt);
 
@@ -113,15 +120,21 @@ static ssize_t mdss_debug_base_offset_read(struct file *file,
 	if (*ppos)
 		return 0;	/* the end */
 
+	mutex_lock(&mdss_debug_lock);
 	len = snprintf(buf, sizeof(buf), "0x%08zx %zx\n", dbg->off, dbg->cnt);
-	if (len < 0 || len >= sizeof(buf))
+	if (len < 0 || len >= sizeof(buf)) {
+		mutex_unlock(&mdss_debug_lock);
 		return 0;
+	}
 
-	if ((count < sizeof(buf)) || copy_to_user(buff, buf, len))
+	if ((count < sizeof(buf)) || copy_to_user(buff, buf, len)) {
+		mutex_unlock(&mdss_debug_lock);
 		return -EFAULT;
+	}
 
 	*ppos += len;	/* increase offset */
 
+	mutex_unlock(&mdss_debug_lock);
 	return len;
 }
 
@@ -178,6 +191,8 @@ static ssize_t mdss_debug_base_reg_read(struct file *file,
 		return -ENODEV;
 	}
 
+	mutex_lock(&mdss_debug_lock);
+
 	if (!dbg->buf) {
 		char dump_buf[64];
 		char *ptr;
@@ -189,6 +204,7 @@ static ssize_t mdss_debug_base_reg_read(struct file *file,
 
 		if (!dbg->buf) {
 			pr_err("not enough memory to hold reg dump\n");
+			mutex_unlock(&mdss_debug_lock);
 			return -ENOMEM;
 		}
 
@@ -218,17 +234,21 @@ static ssize_t mdss_debug_base_reg_read(struct file *file,
 		dbg->buf_len = tot;
 	}
 
-	if (*ppos >= dbg->buf_len)
+	if (*ppos >= dbg->buf_len) {
+		mutex_unlock(&mdss_debug_lock);
 		return 0; /* done reading */
+	}
 
 	len = min(count, dbg->buf_len - (size_t) *ppos);
 	if (copy_to_user(user_buf, dbg->buf + *ppos, len)) {
 		pr_err("failed to copy to user\n");
+		mutex_unlock(&mdss_debug_lock);
 		return -EFAULT;
 	}
 
 	*ppos += len; /* increase offset */
 
+	mutex_unlock(&mdss_debug_lock);
 	return len;
 }
 
@@ -395,6 +415,14 @@ int mdss_debugfs_init(struct mdss_data_type *mdata)
 	debugfs_create_u32("min_mdp_clk", 0644, mdd->root,
 			(u32 *)&mdata->min_mdp_clk);
 
+#if defined(CONFIG_MACH_LT03_TMO)
+	debugfs_create_u64("min_uhd_bus_vote", 0644,mdd->root,
+		(u64 *)&mdata->perf_tune.min_uhd_bus_vote);
+
+	debugfs_create_u64("min_qhd_bus_vote", 0644,mdd->root,
+		(u64 *)&mdata->perf_tune.min_qhd_bus_vote);
+#endif
+
 	mdata->debug_inf.debug_data = mdd;
 
 	return 0;
@@ -474,7 +502,7 @@ static inline struct mdss_mdp_misr_map *mdss_misr_get_map(u32 block_id)
 {
 	struct mdss_mdp_misr_map *map;
 
-	if (block_id > DISPLAY_MISR_MDP) {
+	if (block_id > DISPLAY_MISR_HDMI && block_id != DISPLAY_MISR_MDP) {
 		pr_err("MISR Block id (%d) out of range\n", block_id);
 		return NULL;
 	}
@@ -497,6 +525,12 @@ int mdss_misr_set(struct mdss_data_type *mdata,
 	u32 config = 0, val = 0;
 	u32 mixer_num = 0;
 	bool is_valid_wb_mixer = true;
+
+	if (!mdata || !req || !ctl) {
+		pr_err("Invalid input params: mdata = %pK req = %pK ctl = %pK",
+			mdata, req, ctl);
+		return -EINVAL;
+	}
 	map = mdss_misr_get_map(req->block_id);
 	if (!map) {
 		pr_err("Invalid MISR Block=%d\n", req->block_id);

@@ -1476,7 +1476,7 @@ static int msm_sec_sa_put(struct snd_kcontrol *kcontrol,
 	mutex_lock(&routing_lock);
 	ac = q6asm_get_audio_client(fe_dai_map[3][SESSION_TYPE_RX].strm_id);
 	ret = q6asm_set_sa(ac,(int*)ucontrol->value.integer.value);
-	mutex_unlock(&routing_lock);	
+	mutex_unlock(&routing_lock);
 	return ret;
 }
 
@@ -1488,7 +1488,7 @@ static int msm_sec_vsp_put(struct snd_kcontrol *kcontrol,
 	mutex_lock(&routing_lock);
 	ac = q6asm_get_audio_client(fe_dai_map[3][SESSION_TYPE_RX].strm_id);
 	ret = q6asm_set_vsp(ac,(int*)ucontrol->value.integer.value);
-	mutex_unlock(&routing_lock);	
+	mutex_unlock(&routing_lock);
 	return ret;
 }
 
@@ -1501,8 +1501,8 @@ static int msm_sec_dha_put(struct snd_kcontrol *kcontrol,
 	mutex_lock(&routing_lock);
 	ac = q6asm_get_audio_client(fe_dai_map[3][SESSION_TYPE_RX].strm_id);
 	ret = q6asm_set_dha(ac,(int*)ucontrol->value.integer.value);
-	mutex_unlock(&routing_lock);	
-	return ret;		
+	mutex_unlock(&routing_lock);
+	return ret;
 }
 
 static int msm_sec_lrsm_put(struct snd_kcontrol *kcontrol,
@@ -1513,8 +1513,8 @@ static int msm_sec_lrsm_put(struct snd_kcontrol *kcontrol,
 	mutex_lock(&routing_lock);
 	ac = q6asm_get_audio_client(fe_dai_map[3][SESSION_TYPE_RX].strm_id);
 	ret = q6asm_set_lrsm(ac,(int*)ucontrol->value.integer.value);
-	mutex_unlock(&routing_lock);	
-	return ret;		
+	mutex_unlock(&routing_lock);
+	return ret;
 }
 
 static int msm_sec_sa_ep_put(struct snd_kcontrol *kcontrol,
@@ -1525,8 +1525,8 @@ static int msm_sec_sa_ep_put(struct snd_kcontrol *kcontrol,
 	mutex_lock(&routing_lock);
 	ac = q6asm_get_audio_client(fe_dai_map[3][SESSION_TYPE_RX].strm_id);
 	ret = q6asm_set_sa_ep(ac,(int*)ucontrol->value.integer.value);
-	mutex_unlock(&routing_lock);	
-	return ret;	
+	mutex_unlock(&routing_lock);
+	return ret;
 }
 
 static int msm_routing_ec_ref_rx_get(struct snd_kcontrol *kcontrol,
@@ -1541,6 +1541,14 @@ static int msm_routing_ec_ref_rx_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
 	int ec_ref_port_id;
+	int mux = ucontrol->value.enumerated.item[0];
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+
+	if (mux >= e->max) {
+		pr_err("%s: Invalid mux value %d\n", __func__, mux);
+		return -EINVAL;
+	}
+
 	mutex_lock(&routing_lock);
 	switch (ucontrol->value.integer.value[0]) {
 	case 0:
@@ -1594,6 +1602,11 @@ static int msm_routing_ext_ec_put(struct snd_kcontrol *kcontrol,
 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
 	int ret = 0;
 	bool state = false;
+
+	if (mux >= e->max) {
+		pr_err("%s: Invalid mux value %d\n", __func__, mux);
+		return -EINVAL;
+	}
 
 	pr_debug("%s: msm_route_ec_ref_rx = %d value = %ld\n",
 		 __func__, msm_route_ext_ec_ref,

@@ -1608,7 +1608,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	msd.ctrl_pdata = ctrl;
 	msd.mpd = pdata;
 	
-	printk("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
+	printk("%s: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
 #if 0
 	if (!msd.dstat.is_elvss_loaded) {
@@ -1710,7 +1710,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 #endif
 #endif
 
-    printk("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
+    printk("%s: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
 	if (ctrl->off_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds);

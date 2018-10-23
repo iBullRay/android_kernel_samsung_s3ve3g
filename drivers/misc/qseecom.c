@@ -839,7 +839,8 @@ static int qseecom_unload_app(struct qseecom_dev_handle *data)
 		if (ret) {
 			pr_err("scm_call to unload app (id = %d) failed\n",
 							req.app_id);
-			return -EFAULT;
+			ret = -EFAULT;
+			goto unload_exit;
 		} else {
 			pr_warn("App id %d now unloaded\n", req.app_id);
 		}
@@ -848,10 +849,11 @@ static int qseecom_unload_app(struct qseecom_dev_handle *data)
 			if (ret) {
 				pr_err("process_incomplete_cmd fail err: %d\n",
 						ret);
-				return ret;
+				goto unload_exit;
 			}
 		}
 	}
+unload_exit:
 	qseecom_unmap_ion_allocated_memory(data);
 	data->released = true;
 	return ret;
@@ -871,7 +873,7 @@ int __qseecom_process_rpmb_svc_cmd(struct qseecom_dev_handle *data_ptr,
 	void *req_buf = NULL;
 
 	if ((req_ptr == NULL) || (send_svc_ireq_ptr == NULL)) {
-		pr_err("Error with pointer: req_ptr = %p, send_svc_ptr = %p\n",
+		pr_err("Error with pointer: req_ptr = %pK, send_svc_ptr = %pK\n",
 			req_ptr, send_svc_ireq_ptr);
 		return -EINVAL;
 	}
@@ -1982,7 +1984,7 @@ int qseecom_send_command(struct qseecom_handle *handle, void *send_buf,
 	if (ret)
 		return ret;
 
-	pr_debug("sending cmd_req->rsp size: %u, ptr: 0x%p\n",
+	pr_debug("sending cmd_req->rsp size: %u, ptr: 0x%pK\n",
 			req.resp_len, req.resp_buf);
 	return ret;
 }
@@ -3021,7 +3023,11 @@ static long qseecom_ioctl(struct file *file, unsigned cmd,
 			break;
 		}
 		pr_debug("SET_MEM_PARAM: qseecom addr = 0x%x\n", (u32)data);
+		mutex_lock(&app_access_lock);
+		atomic_inc(&data->ioctl_count);
 		ret = qseecom_set_client_mem_param(data, argp);
+		atomic_dec(&data->ioctl_count);
+		mutex_unlock(&app_access_lock);
 		if (ret)
 			pr_err("failed Qqseecom_set_mem_param request: %d\n",
 								ret);
